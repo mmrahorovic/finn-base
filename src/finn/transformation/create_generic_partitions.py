@@ -124,7 +124,7 @@ class PartitionFromLambda(Transformation):
                         assert (
                             self.partitioning(node) != partition_id
                         ), """cycle-free graph violated: partition depends on itself"""
-                        print(node)
+                        #print(node)
                         predecessors = model.find_direct_predecessors(node)
                         if predecessors is not None:
                             next_to_check.extend(predecessors)
