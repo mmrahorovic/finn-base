@@ -35,10 +35,10 @@ from finn.util.basic import get_by_name
 
 
 def _auto_pad_to_explicit_padding(
-    autopad_str, idim_h, idim_w, k_h, k_w, stride, n_dims
+    autopad_str, idim_h, idim_w, k_h, k_w, stride_h, stride_w, n_dims
 ):
-    pad_total_h = (stride - 1) * idim_h - stride + k_h
-    pad_total_w = (stride - 1) * idim_w - stride + k_w
+    pad_total_h = (stride_h - 1) * idim_h - stride_h + k_h
+    pad_total_w = (stride_w - 1) * idim_w - stride_w + k_w
     pad_half_small_h = int((pad_total_h / 2))
     pad_half_small_w = int((pad_total_w / 2))
     pad_half_large_h = pad_total_h - pad_half_small_h
@@ -73,7 +73,8 @@ class LowerConvsToMatMul(Transformation):
                 k = get_by_name(n.attribute, "kernel_shape").ints
                 k_h = k[0]
                 k_w = k[1]
-                stride = get_by_name(n.attribute, "strides").ints[-1]
+                stride_h = get_by_name(n.attribute, "strides").ints[0]
+                stride_w = get_by_name(n.attribute, "strides").ints[1]
                 group = get_by_name(n.attribute, "group").i
                 weight_name = n.input[1]
                 W_conv = model.get_initializer(weight_name)
@@ -107,7 +108,8 @@ class LowerConvsToMatMul(Transformation):
                             ifm_dim_w,
                             k_h,
                             k_w,
-                            stride,
+                            stride_h,
+                            stride_w,
                             len(model.get_tensor_shape(n.input[0])) - 2,
                         )
                 else:
@@ -179,7 +181,7 @@ class LowerConvsToMatMul(Transformation):
                     padding = 0
 
                 # k_h=k_w==1: pointwise convolution, thus no im2col needed
-                if k_h == 1 and k_w == 1 and padding == 0 and stride == 1:
+                if k_h == 1 and k_w == 1 and padding == 0 and stride_h == 1 and stride_w == 1:
                     need_im2col = False
 
                 if need_im2col:
@@ -215,7 +217,7 @@ class LowerConvsToMatMul(Transformation):
                         [inp_trans_out],
                         [im2col_out],
                         domain="finn.custom_op.general",
-                        stride=stride,
+                        stride=[stride_h, stride_w],
                         kernel_size=[k_h, k_w],
                         pad_amount=pad,
                         input_shape="(1,{},{},{})".format(ifm_dim_h, ifm_dim_w, ifm_ch),
@@ -243,5 +245,5 @@ class LowerConvsToMatMul(Transformation):
                 # remove old nodes
                 graph.node.remove(n)
 
-        model = model.transform(InferShapes())
+        #model = model.transform(InferShapes())
         return (model, graph_modified)
