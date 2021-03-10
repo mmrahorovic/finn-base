@@ -141,8 +141,9 @@ class PartitionFromLambda(Transformation):
             for o in p_out_vi:
                 p_model.graph.output.append(o)
 
-            # remove redundant input value_info entries
-            for i in p_in_vi:
+            # remove redundant input/output value_info entries
+            p_vi = p_in_vi + p_out_vi
+            for i in p_vi:
                 if i in p_model.graph.value_info:
                     p_model.graph.value_info.remove(i)
 
